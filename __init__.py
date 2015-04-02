@@ -59,12 +59,12 @@ while cap.isOpened() and cv2.waitKey(50) != 27:
 
         for vert in cnt:
             if vert[0][0] <= cursorCoord[0] and vert[0][1] <= cursorCoord[1]:
-                cursorCoord = (vert[0][0], vert[0][1])
+                cursorCoord = (vert[0][0]-1, vert[0][1]-3)
 
         cursorPosL.append(cursorCoord)
 
-        cursorStart = (cursorCoord[0] - 1, cursorCoord[1] - 1)
-        cursorEnd = (cursorCoord[0] + 4, cursorCoord[1] + 9)
+        cursorStart = (cursorCoord[0] - 0, cursorCoord[1] - 0)
+        cursorEnd = (cursorCoord[0] + 6, cursorCoord[1] + 13)
 
         cv2.rectangle(frame, cursorStart, cursorEnd, (0, 0, 0), cv.CV_FILLED)
 
@@ -86,11 +86,22 @@ while cap.isOpened() and cv2.waitKey(50) != 27:
 
     lastFrame = frame.copy()
 
+
+    # DEBUG DRAW of inferred cursor path
+    overlay = frame.copy() # create a copy of frame
+    lastVert = cursorPosL[0]
+    for vert in cursorPosL: # draw points and connections
+        cv2.line(frame, lastVert, vert, (255, 150, 150),1, cv.CV_AA)
+        lastVert = vert
+    for vert in cursorPosL: cv2.line(frame, vert, vert, (0, 0, 255),1)
+    opacity = 0.4 # blend with original image
+    cv2.addWeighted(overlay, opacity, frame, 1 - opacity, 0, frame)
+
+
     newS = (int(frame.shape[1] * 2), int(frame.shape[0] * 2))
     frameDiff = cv2.resize(frameDiff, newS, interpolation=cv2.INTER_NEAREST)
     frame = cv2.resize(frame, newS, interpolation=cv2.INTER_NEAREST)
 
-    # for
 
     cv2.imshow('frameDiff', frameDiff)
     cv2.imshow('frame', frame)
