@@ -37,25 +37,48 @@ cv2.namedWindow('frame')
 cv2.moveWindow('frame', 800, 50)
 
 cv2.namedWindow('result')
-cv2.moveWindow('result', 1550, 50)
+cv2.moveWindow('result', 50, 600)
 
+points = []
 
 def vectorize(cIdx, frameDiff):
     if cIdx > 0:
         res = np.zeros(frameDiff.shape)
 
-        moveVec = (cursorPosL[cIdx][0] - cursorPosL[cIdx-1][0], cursorPosL[cIdx][1] - cursorPosL[cIdx-1][1])
+        x0 = cursorPosL[cIdx-1][0]
+        y0 = cursorPosL[cIdx-1][1]
+
+        x1 = cursorPosL[cIdx][0]
+        y1 = cursorPosL[cIdx][1]
+
+        moveVec = (x1 - x0, y1 - y0)
 
         pixelsMatched = []
 
         for i in range(3):
             for j in range(3):
-                pa
+                sampleX = x0 + i
+                sampleY = y0 + j
+                if res.shape[1] <= sampleX < 0 or frameDiff.shape[0] <= sampleY < 0:
+                    continue
+                if [a for a,b in zip(frameDiff[sampleY][sampleX], [30, 30, 30]) if a > b]:
+                    pixelsMatched.append((sampleX, sampleY))
+                    cv2.circle(frameDiff, pixelsMatched[-1], 3, (0, 0, 255), 1)
 
-        cv2.line(res, (cursorPosL[cIdx-1][0], cursorPosL[cIdx-1][1]), (cursorPosL[cIdx][0], cursorPosL[cIdx][1]), (255, 250, 150), 1, cv.CV_AA)
+        if len(pixelsMatched) != 0:
+            points.append(pixelsMatched[-1])
+        else:
+            points.append( (-1,-1) )
+
+        cv2.line(frameDiff, (cursorPosL[cIdx-1][0], cursorPosL[cIdx-1][1]), (cursorPosL[cIdx][0], cursorPosL[cIdx][1]), (255, 250, 150), 1, cv.CV_AA)
+
+        lastVert = points[0]
+        for vert in points:  # draw points and connections
+            if vert[0] != -1 and lastVert[0] != -1:
+                cv2.line(res, lastVert, vert, (255, 150, 150), 1, cv.CV_AA)
+            lastVert = vert
 
         cv2.imshow('result', res)
-
 
 # Main loop
 while cap.isOpened() and cv2.waitKey(50) != 27:
@@ -105,9 +128,7 @@ while cap.isOpened() and cv2.waitKey(50) != 27:
     ret, frameBefore = cap2.read()
     frameDiff = cv2.absdiff(frameAhead, frameBefore)
 
-
     vectorize(int(currFrameIdx)-startingFrame-2, frameDiff)
-
 
     lastFrame = frame.copy()
 
