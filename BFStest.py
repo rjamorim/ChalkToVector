@@ -2,22 +2,18 @@ import numpy as np
 import cv2
 import cv
 
-pixelThreshold = 30
+pixelThreshold = 80
 
 # add neighbors of the pixel at location 'pt' to the BFS queue
 def addNB(img, pt, queue, level):
     if pt[0] + 1 < len(img):
-        if img[pt[1], pt[0] + 1] > pixelThreshold:
-            queue.append((pt[0], pt[1] + 1, level))
+        queue.append((pt[0], pt[1] + 1, level))
     if pt[1] + 1 < len(img[0]):
-        if img[pt[1] + 1, pt[0]] > pixelThreshold:
-            queue.append((pt[0] + 1, pt[1], level))
+        queue.append((pt[0] + 1, pt[1], level))
     if pt[0] - 1 > -1:
-        if img[pt[1], pt[0] - 1] > pixelThreshold:
-            queue.append((pt[0], pt[1] - 1, level))
+        queue.append((pt[0], pt[1] - 1, level))
     if pt[1] - 1 > -1:
-        if img[pt[1] - 1, pt[0]] > pixelThreshold:
-            queue.append((pt[0] - 1, pt[1], level))
+        queue.append((pt[0] - 1, pt[1], level))
 
 # paths of the images we will use for testing
 pathX = "resources/x.png"
@@ -46,21 +42,22 @@ BFSlevel = 1
 # add first neighbors to the BFS queue
 addNB(testImg, startX, BFSqueue, BFSlevel)
 
-print len(BFSqueue)
-
 while BFSqueue:
     pixelToExplore = BFSqueue[0][0:2]
     BFSqueue.pop(0)
 
-    if pixelToExplore in BFSexploredPixels:
-        continue
-    else:
-        BFSexploredPixels.append(pixelToExplore)
-        BFSlevel += 1
-        addNB(testImg, pixelToExplore, BFSqueue, BFSlevel)
-        drawPt = (pixelToExplore[0], pixelToExplore[1])
-        cv2.ellipse(result, drawPt, (1,1), 0, 0, 0, (12,57,255))
+    if pixelToExplore in BFSexploredPixels: continue
 
+    if testImg[pixelToExplore[1], pixelToExplore[0]] < pixelThreshold: continue
+
+    BFSexploredPixels.append(pixelToExplore)
+    BFSlevel += 1
+    addNB(testImg, pixelToExplore, BFSqueue, BFSlevel)
+    drawPt = (pixelToExplore[0], pixelToExplore[1])
+    cv2.ellipse(result, drawPt, (1, 1), 0, 0, 0, (12, 57, 255))
+
+# for pt in BFSexploredPixels:
+#     pass
 
 # display the point where we start our BFS from using a bright pixel
 cv2.ellipse(testImg, startX, (1,1), 0, 0, 0, (255,255,255))
