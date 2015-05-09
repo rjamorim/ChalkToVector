@@ -5,6 +5,10 @@ import cv
 pixelThreshold = 80
 imgScaling = 16
 
+# squared eclidian distance between two points
+def pixelSqDist(pt1, pt2):
+    return (pt1[0] - pt2[0])**2 + (pt1[1] - pt2[1])**2
+
 # add neighbors of the pixel at location 'pt' to the BFS queue
 def addNB(img, pt, queue, level):
     if pt[0] + 1 < len(img):
@@ -75,21 +79,42 @@ newSize = (int(testImg.shape[1] * imgScaling), int(testImg.shape[0] * imgScaling
 # testImg = cv2.resize(testImg, newSize, interpolation=cv2.INTER_NEAREST)
 result = cv2.resize(result, newSize, interpolation=cv2.INTER_NEAREST)
 
-
 for pts in BFSexploredPixelLevels:
-    centerOfMass = [0,0]
-    w = 0.0
-    for pt in pts:
-        w += testImg[pt[1], pt[0]]
-        centerOfMass[0] += pt[0] * testImg[pt[1], pt[0]]
-        centerOfMass[1] += pt[1] * testImg[pt[1], pt[0]]
-    print w
-    centerOfMass[0] /= w
-    centerOfMass[1] /= w
-    centerOfMass[0] = centerOfMass[0] * imgScaling + imgScaling * 1.5
-    centerOfMass[1] = centerOfMass[1] * imgScaling + imgScaling * 0.5
+    clusters = [[pt] for pt in pts]
+    for cluster in clusters:
+        otherClusters = clusters[:]
+        otherClusters.remove(cluster)
+        for otherCluster in otherClusters:
+            shouldJoin = False
+            for pt1 in cluster:
+                for pt2 in otherCluster:
+                    if pixelSqDist(pt1, pt2) < 3:
+                        shouldJoin = True
+                        break
+                if shouldJoin: break
 
-    cv2.circle(result, ( int(centerOfMass[0]), int(centerOfMass[1]) ), 1, (255, 255, 255), 3, cv.CV_AA)
+            if shouldJoin:
+                cluster.extend(otherCluster)
+                clusters.remove(otherCluster)
+
+    print len(clusters), clusters
+    for i in range(len(clusters)):
+        cluster = clusters[i]
+
+        centerOfMass = [0, 0]
+        w = 0.0
+
+        for pt in cluster:
+            w += testImg[pt[1], pt[0]]
+            centerOfMass[0] += pt[0] * testImg[pt[1], pt[0]]
+            centerOfMass[1] += pt[1] * testImg[pt[1], pt[0]]
+
+        centerOfMass[0] /= w
+        centerOfMass[1] /= w
+        centerOfMass[0] = centerOfMass[0] * imgScaling + imgScaling * 1.5
+        centerOfMass[1] = centerOfMass[1] * imgScaling + imgScaling * 0.5
+
+        cv2.circle(result, (int(centerOfMass[0]), int(centerOfMass[1])), 1, (50 * i, 50 * i, 50 * i), 3, cv.CV_AA)
 
 
 while cv2.waitKey(100) != 27:
