@@ -2,12 +2,14 @@ import numpy as np
 import cv2
 import cv
 
-pixelThreshold = 80
+pixelThreshold = 100
 imgScaling = 16
+
 
 # squared eclidian distance between two points
 def pixelSqDist(pt1, pt2):
     return (pt1[0] - pt2[0])**2 + (pt1[1] - pt2[1])**2
+
 
 # add neighbors of the pixel at location 'pt' to the BFS queue
 def addNB(img, pt, queue, level):
@@ -29,6 +31,11 @@ path2 = "resources/2.png"
 startX = (39,27)
 startM = (0,0)
 start2 = (0,0)
+
+# hardcoded cursor paths
+cursorPathX = [(39,27), (39,25), (44,28), (45,37), (48,40), (48,28), (49,25)]
+
+cursorPath = cursorPathX
 
 start = startX
 
@@ -58,9 +65,6 @@ while BFSqueue:
     if testImg[pixelToExplore[1], pixelToExplore[0]] < pixelThreshold:
         continue
 
-    level += 1
-    addNB(testImg, pixelToExplore, BFSqueue, level)
-
     BFSexploredPixels.append(pixelToExplore)
 
     if len(BFSexploredPixelLevels) < level:
@@ -68,17 +72,29 @@ while BFSqueue:
     else:
         BFSexploredPixelLevels[-1].append((pixelToExplore[0], pixelToExplore[1],level))
 
+    level += 1
+    addNB(testImg, pixelToExplore, BFSqueue, level)
+
     drawPt = (pixelToExplore[0], pixelToExplore[1])
     cv2.ellipse(result, drawPt, (1, 1), 0, 0, 0, (12, 100, 9*level))
 
-
-# display the point where we start our BFS from using a bright pixel
-# cv2.circle(testImg, startX, 1, (255,255,255))
 
 newSize = (int(testImg.shape[1] * imgScaling), int(testImg.shape[0] * imgScaling))
 # testImg = cv2.resize(testImg, newSize, interpolation=cv2.INTER_NEAREST)
 result = cv2.resize(result, newSize, interpolation=cv2.INTER_NEAREST)
 
+# display the point where we start our BFS from using a bright pixel
+# cv2.circle(testImg, (startX[0]*imgScaling, startX[1]*imgScaling), 1, (255,255,255))
+lastPt = cursorPath[0]
+for pt in cursorPath[1:]:
+    cv2.line(result, (int(lastPt[0] * imgScaling + imgScaling * 1.5), int(lastPt[1] * imgScaling + imgScaling * 0.5)),
+             (int(pt[0] * imgScaling + imgScaling * 1.5), int(pt[1] * imgScaling + imgScaling * 0.5)), (255,0,0), 2, cv.CV_AA)
+    lastPt = pt
+
+centersOfMass = []
+centersOfMassClusters = []
+
+print BFSexploredPixelLevels
 for pts in BFSexploredPixelLevels:
     clusters = [[pt] for pt in pts]
     for cluster in clusters:
@@ -97,9 +113,11 @@ for pts in BFSexploredPixelLevels:
                 cluster.extend(otherCluster)
                 clusters.remove(otherCluster)
 
+    levelCentersOfMass = []
+
     print len(clusters), clusters
-    for i in range(len(clusters)):
-        cluster = clusters[i]
+    for pathPtIdx in range(len(clusters)):
+        cluster = clusters[pathPtIdx]
 
         centerOfMass = [0, 0]
         w = 0.0
@@ -111,11 +129,53 @@ for pts in BFSexploredPixelLevels:
 
         centerOfMass[0] /= w
         centerOfMass[1] /= w
+
+        levelCentersOfMass.append( (centerOfMass[0], centerOfMass[1], cluster[0][2]) )
+        centersOfMass.append( (centerOfMass[0], centerOfMass[1], cluster[0][2]) )
+
         centerOfMass[0] = centerOfMass[0] * imgScaling + imgScaling * 1.5
         centerOfMass[1] = centerOfMass[1] * imgScaling + imgScaling * 0.5
 
-        cv2.circle(result, (int(centerOfMass[0]), int(centerOfMass[1])), 1, (50 * i, 50 * i, 50 * i), 3, cv.CV_AA)
+        # cv2.circle(result, (int(centerOfMass[0]), int(centerOfMass[1])), 1, (50 * i, 50 * i, 50 * i), 3, cv.CV_AA)
+        cv2.circle(result, (int(centerOfMass[0]), int(centerOfMass[1])), 1, (9 * pts[0][2], 9 * pts[0][2], 9 * pts[0][2]), 4, cv.CV_AA)
 
+    centersOfMassClusters.append(levelCentersOfMass)
+
+closestMatches = [[10000,0] for pathPtIdx in cursorPath]
+for ptIdx in range(len(centersOfMass)):
+    pt = centersOfMass[ptIdx]
+    for pathPtIdx in range(len(cursorPath)):
+        pathPt = cursorPath[pathPtIdx]
+        dist = pixelSqDist(pathPt, pt)
+        if dist < closestMatches[pathPtIdx][0]:
+            closestMatches[pathPtIdx][1] = ptIdx
+            closestMatches[pathPtIdx][0] = dist
+
+
+for m in closestMatches:
+    cv2.circle(result, (int(centersOfMass[m[1]][0] * imgScaling + imgScaling * 1.5), int(centersOfMass[m[1]][1] * imgScaling + imgScaling * 0.5)), 8, (255,255,255), 1, cv.CV_AA)
+
+currentGoal = 1
+finalGoal = len(cursorPath) - 1
+pathEstimate = [centersOfMassClusters[0][0]]
+pathSplit = []
+
+for c in centersOfMassClusters:
+    if c[0][2] == currentGoal:
+        currentGoal += 1
+
+    pathEstimate.append(c[0])
+
+print pathEstimate
+
+shiftX = 0
+
+
+lastPt = pathEstimate[0]
+for pt in pathEstimate[1:]:
+    cv2.line(result, (int(lastPt[0] * imgScaling + imgScaling * 1.5) - shiftX, int(lastPt[1] * imgScaling + imgScaling * 0.5)),
+             (int(pt[0] * imgScaling + imgScaling * 1.5) - shiftX, int(pt[1] * imgScaling + imgScaling * 0.5)), (255,255,0), 1, cv.CV_AA)
+    lastPt = pt
 
 while cv2.waitKey(100) != 27:
     cv2.imshow("x image", testImg)
