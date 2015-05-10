@@ -10,7 +10,8 @@ import cv
 # Get the videoCapture object and set it a bit ahead, so we don't have to wait a lot to start debugging
 cap = cv2.VideoCapture("../resources/test.mp4")
 cap2 = cv2.VideoCapture("../resources/test.mp4")
-startingFrame = 265
+# startingFrame = 265
+startingFrame = 360
 cap.set(cv.CV_CAP_PROP_POS_FRAMES, startingFrame)
 
 # Read the first frame to obtain the video dimension
@@ -81,7 +82,7 @@ def vectorize(cIdx, frameDiff):
         cv2.imshow('result', res)
 
 # Main loop
-while cap.isOpened() and cv2.waitKey(50) != 27:
+while cap.isOpened() and cv2.waitKey(250) != 27:
     ret, frame = cap.read()
 
     # Identifies positions within the frame with color values between 230 and 255 to locate the cursor

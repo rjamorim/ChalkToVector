@@ -14,13 +14,13 @@ def pixelSqDist(pt1, pt2):
 # add neighbors of the pixel at location 'pt' to the BFS queue
 def addNB(img, pt, queue, level):
     if pt[0] + 1 < len(img):
-        queue.append((pt[0], pt[1] + 1, level))
+        queue.append([pt[0], pt[1] + 1, level])
     if pt[1] + 1 < len(img[0]):
-        queue.append((pt[0] + 1, pt[1], level))
+        queue.append([pt[0] + 1, pt[1], level])
     if pt[0] - 1 > -1:
-        queue.append((pt[0], pt[1] - 1, level))
+        queue.append([pt[0], pt[1] - 1, level])
     if pt[1] - 1 > -1:
-        queue.append((pt[0] - 1, pt[1], level))
+        queue.append([pt[0] - 1, pt[1], level])
 
 # paths of the images we will use for testing
 pathX = "resources/x.png"
@@ -68,9 +68,9 @@ while BFSqueue:
     BFSexploredPixels.append(pixelToExplore)
 
     if len(BFSexploredPixelLevels) < level:
-        BFSexploredPixelLevels.append([(pixelToExplore[0], pixelToExplore[1],level)])
+        BFSexploredPixelLevels.append([[pixelToExplore[0], pixelToExplore[1],level]])
     else:
-        BFSexploredPixelLevels[-1].append((pixelToExplore[0], pixelToExplore[1],level))
+        BFSexploredPixelLevels[-1].append([pixelToExplore[0], pixelToExplore[1],level])
 
     level += 1
     addNB(testImg, pixelToExplore, BFSqueue, level)
@@ -92,18 +92,21 @@ for pt in cursorPath[1:]:
     lastPt = pt
 
 centersOfMass = []
-centersOfMassClusters = []
+group = 0
+cmClusters = [[[startX[0], startX[1], 0, group]]]
+lastClusters = cmClusters[:]
+# pixelClusters = cmClusters[:]
 
 print BFSexploredPixelLevels
 for pts in BFSexploredPixelLevels:
-    clusters = [[pt] for pt in pts]
+    clusters = [[pt + [group]] for pt in pts]
     for cluster in clusters:
         otherClusters = clusters[:]
         otherClusters.remove(cluster)
         for otherCluster in otherClusters:
             shouldJoin = False
-            for pt1 in cluster:
-                for pt2 in otherCluster:
+            for pt1 in cluster[1:]:
+                for pt2 in otherCluster[1:]:
                     if pixelSqDist(pt1, pt2) < 3:
                         shouldJoin = True
                         break
@@ -112,6 +115,10 @@ for pts in BFSexploredPixelLevels:
             if shouldJoin:
                 cluster.extend(otherCluster)
                 clusters.remove(otherCluster)
+
+    # done generating this level's clusters
+    # now join them with those from the previous level
+
 
     levelCentersOfMass = []
 
@@ -130,8 +137,8 @@ for pts in BFSexploredPixelLevels:
         centerOfMass[0] /= w
         centerOfMass[1] /= w
 
-        levelCentersOfMass.append( (centerOfMass[0], centerOfMass[1], cluster[0][2]) )
-        centersOfMass.append( (centerOfMass[0], centerOfMass[1], cluster[0][2]) )
+        levelCentersOfMass.append( [centerOfMass[0], centerOfMass[1], cluster[0][2]] )
+        centersOfMass.append( [centerOfMass[0], centerOfMass[1], cluster[0][2]] )
 
         centerOfMass[0] = centerOfMass[0] * imgScaling + imgScaling * 1.5
         centerOfMass[1] = centerOfMass[1] * imgScaling + imgScaling * 0.5
@@ -139,7 +146,26 @@ for pts in BFSexploredPixelLevels:
         # cv2.circle(result, (int(centerOfMass[0]), int(centerOfMass[1])), 1, (50 * i, 50 * i, 50 * i), 3, cv.CV_AA)
         cv2.circle(result, (int(centerOfMass[0]), int(centerOfMass[1])), 1, (9 * pts[0][2], 9 * pts[0][2], 9 * pts[0][2]), 4, cv.CV_AA)
 
-    centersOfMassClusters.append(levelCentersOfMass)
+        for lastCluster in lastClusters:
+            for pt1 in lastCluster:
+                foundGroup = False
+                for pt2 in cluster:
+                    if pixelSqDist(pt1, pt2) < 3:
+                        cluster.append(lastCluster[-1])
+                        foundGroup = True
+                        break
+                if foundGroup: break
+
+    for cluster1 in clusters:
+        for cluster2 in clusters:
+            if cluster1 == cluster2: continue
+            if cluster1[0] == cluster2[0]:
+                group += 1
+                cluster1[-1] = group
+
+    lastClusters = clusters
+
+    cmClusters.append(levelCentersOfMass)
 
 closestMatches = [[10000,0] for pathPtIdx in cursorPath]
 for ptIdx in range(len(centersOfMass)):
@@ -157,22 +183,33 @@ for m in closestMatches:
 
 currentGoal = 1
 finalGoal = len(cursorPath) - 1
-pathEstimate = [centersOfMassClusters[0][0]]
+pathSegments = [cmClusters[0][0]]
+pathsTree = [pathSegments, None]
 pathSplit = []
 
-for c in centersOfMassClusters:
-    if c[0][2] == currentGoal:
-        currentGoal += 1
+for c in cmClusters:
+    print  c
 
-    pathEstimate.append(c[0])
+# for cmCluster in cmClusters[1:]:
+#     if cmCluster[0][2] == currentGoal:
+#         currentGoal += 1
+#
+#     for cm in cmCluster:
+#
+#         closestPt = [10000, None]
+#
+#         for pt in cm:
+#             if pixelSqDist(pathSegments[-1], cm) < closestPt[0]:
+#
+#             path.append(c[0])
 
-print pathEstimate
+# print pathSegments
 
 shiftX = 0
 
 
-lastPt = pathEstimate[0]
-for pt in pathEstimate[1:]:
+lastPt = pathSegments[0]
+for pt in pathSegments[1:]:
     cv2.line(result, (int(lastPt[0] * imgScaling + imgScaling * 1.5) - shiftX, int(lastPt[1] * imgScaling + imgScaling * 0.5)),
              (int(pt[0] * imgScaling + imgScaling * 1.5) - shiftX, int(pt[1] * imgScaling + imgScaling * 0.5)), (255,255,0), 1, cv.CV_AA)
     lastPt = pt
