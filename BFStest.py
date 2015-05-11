@@ -1,14 +1,13 @@
 import numpy as np
 import cv2
 import cv
+from datastructs import *
 
 pixelThreshold = 100
 imgScaling = 16
 
 
-# squared eclidian distance between two points
-def pixelSqDist(pt1, pt2):
-    return (pt1[0] - pt2[0])**2 + (pt1[1] - pt2[1])**2
+
 
 
 # add neighbors of the pixel at location 'pt' to the BFS queue
@@ -68,9 +67,9 @@ while BFSqueue:
     BFSexploredPixels.append(pixelToExplore)
 
     if len(BFSexploredPixelLevels) < level:
-        BFSexploredPixelLevels.append([[pixelToExplore[0], pixelToExplore[1],level]])
+        BFSexploredPixelLevels.append([[pixelToExplore[0], pixelToExplore[1], level]])
     else:
-        BFSexploredPixelLevels[-1].append([pixelToExplore[0], pixelToExplore[1],level])
+        BFSexploredPixelLevels[-1].append([pixelToExplore[0], pixelToExplore[1], level])
 
     level += 1
     addNB(testImg, pixelToExplore, BFSqueue, level)
@@ -94,8 +93,9 @@ for pt in cursorPath[1:]:
 centersOfMass = []
 group = 0
 cmClusters = [[[startX[0], startX[1], 0, group]]]
-lastClusters = cmClusters[:]
 # pixelClusters = cmClusters[:]
+
+strokeGraph = StrokeGraph(StrokeNode(cmClusters[0], 0))
 
 print BFSexploredPixelLevels
 for pts in BFSexploredPixelLevels:
@@ -105,8 +105,8 @@ for pts in BFSexploredPixelLevels:
         otherClusters.remove(cluster)
         for otherCluster in otherClusters:
             shouldJoin = False
-            for pt1 in cluster[1:]:
-                for pt2 in otherCluster[1:]:
+            for pt1 in cluster:
+                for pt2 in otherCluster:
                     if pixelSqDist(pt1, pt2) < 3:
                         shouldJoin = True
                         break
@@ -122,9 +122,10 @@ for pts in BFSexploredPixelLevels:
 
     levelCentersOfMass = []
 
-    print len(clusters), clusters
+    # print len(clusters), clusters
     for pathPtIdx in range(len(clusters)):
         cluster = clusters[pathPtIdx]
+        # print cluster
 
         centerOfMass = [0, 0]
         w = 0.0
@@ -143,29 +144,14 @@ for pts in BFSexploredPixelLevels:
         centerOfMass[0] = centerOfMass[0] * imgScaling + imgScaling * 1.5
         centerOfMass[1] = centerOfMass[1] * imgScaling + imgScaling * 0.5
 
-        # cv2.circle(result, (int(centerOfMass[0]), int(centerOfMass[1])), 1, (50 * i, 50 * i, 50 * i), 3, cv.CV_AA)
         cv2.circle(result, (int(centerOfMass[0]), int(centerOfMass[1])), 1, (9 * pts[0][2], 9 * pts[0][2], 9 * pts[0][2]), 4, cv.CV_AA)
 
-        for lastCluster in lastClusters:
-            for pt1 in lastCluster:
-                foundGroup = False
-                for pt2 in cluster:
-                    if pixelSqDist(pt1, pt2) < 3:
-                        cluster.append(lastCluster[-1])
-                        foundGroup = True
-                        break
-                if foundGroup: break
-
-    for cluster1 in clusters:
-        for cluster2 in clusters:
-            if cluster1 == cluster2: continue
-            if cluster1[0] == cluster2[0]:
-                group += 1
-                cluster1[-1] = group
-
-    lastClusters = clusters
+    strokeGraph.addClusters(clusters)
 
     cmClusters.append(levelCentersOfMass)
+
+strokeGraph.root.printMe()
+print len(centersOfMass)
 
 closestMatches = [[10000,0] for pathPtIdx in cursorPath]
 for ptIdx in range(len(centersOfMass)):
@@ -187,8 +173,8 @@ pathSegments = [cmClusters[0][0]]
 pathsTree = [pathSegments, None]
 pathSplit = []
 
-for c in cmClusters:
-    print  c
+# for c in cmClusters:
+#     print c
 
 # for cmCluster in cmClusters[1:]:
 #     if cmCluster[0][2] == currentGoal:
