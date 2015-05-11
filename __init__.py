@@ -11,7 +11,7 @@ import cv
 cap = cv2.VideoCapture("../resources/test.mp4")
 cap2 = cv2.VideoCapture("../resources/test.mp4")
 # startingFrame = 265
-startingFrame = 300
+startingFrame = 360
 cap.set(cv.CV_CAP_PROP_POS_FRAMES, startingFrame)
 
 # Read the first frame to obtain the video dimension
@@ -27,7 +27,7 @@ cursorPosL = []
 # posL = [ [STROKE_BEGIN/END/HOLD/UNKNOWN,dsfh], -1 , -2 ]
 posL = []
 colorL = []
-frameSpacing = 1 # needs more descriptive name
+frameSpacing = 40 # needs more descriptive name
 
 # currFrame = cap.get(cv.CV_CAP_PROP_POS_FRAMES) + 1
 
@@ -37,8 +37,8 @@ cv2.moveWindow('frameDiff', 50, 50)
 cv2.namedWindow('frame')
 cv2.moveWindow('frame', 800, 50)
 
-#cv2.namedWindow('result')
-#cv2.moveWindow('result', 50, 600)
+cv2.namedWindow('result')
+cv2.moveWindow('result', 50, 600)
 
 points = []
 
@@ -62,7 +62,6 @@ def vectorize(cIdx, frameDiff):
                 sampleY = y0 + j
                 if res.shape[1] <= sampleX < 0 or frameDiff.shape[0] <= sampleY < 0:
                     continue
-                # Is RGB above (30,30,30) threshold?
                 if [a for a,b in zip(frameDiff[sampleY][sampleX], [30, 30, 30]) if a > b]:
                     pixelsMatched.append((sampleX, sampleY))
                     cv2.circle(frameDiff, pixelsMatched[-1], 3, (0, 0, 255), 1)
@@ -80,10 +79,10 @@ def vectorize(cIdx, frameDiff):
                 cv2.line(res, lastVert, vert, (255, 150, 150), 1, cv.CV_AA)
             lastVert = vert
 
-        # cv2.imshow('result', res)
+        cv2.imshow('result', res)
 
 # Main loop
-while cap.isOpened() and cv2.waitKey(1500) != 27:
+while cap.isOpened() and cv2.waitKey(250) != 27:
     ret, frame = cap.read()
 
     # Identifies positions within the frame with color values between 230 and 255 to locate the cursor
@@ -94,7 +93,7 @@ while cap.isOpened() and cv2.waitKey(1500) != 27:
     if contours:
         maxArea = 0
         maxCnt = None
-        cursorCoord = (float("inf"), float("inf"))  # Just a number much larger than any video dimension
+        cursorCoord = (100000, 100000)  # Just a number much larger than any video dimension
         for cnt in contours:
             area = cv2.contourArea(cnt)
             if area > maxArea:
@@ -109,8 +108,17 @@ while cap.isOpened() and cv2.waitKey(1500) != 27:
 
         cursorStart = (cursorCoord[0] - 0, cursorCoord[1] - 0)
         cursorEnd = (cursorCoord[0] + 6, cursorCoord[1] + 13)
-        cv2.rectangle(frame, cursorStart, cursorEnd, (0, 0, 0), cv.CV_FILLED)
 
+        # cv2.rectangle(frame, cursorStart, cursorEnd, (0, 0, 0), cv.CV_FILLED)
+
+        # cv2.circle(frame, cursorCoord, 4, (0, 0, 255), 1)  # Red debug circle
+        # cv2.circle(frame, cursorCoord, 1, (255, 0, 0), 1)  # And its blue center
+
+        # print maxArea # Debug purposes only
+        # cv2.drawContours(frame, [maxCnt], 0, (0, 255, 0), 1) # Debug purposes only
+        # if maxArea <= 3.5: cv2.circle(frame, cursorCoord, 4, (255, 255, 255), 1) # Red debug circle
+        # NOTE: inform in the report that even with very low values of area, we still achieve
+        # pretty good precision. (area=3.5 for instance)
     else:
         cursorPosL.append((-1,-1))
 
@@ -121,7 +129,7 @@ while cap.isOpened() and cv2.waitKey(1500) != 27:
     ret, frameBefore = cap2.read()
     frameDiff = cv2.absdiff(frameAhead, frameBefore)
 
-    #vectorize(int(currFrameIdx)-startingFrame-2, frameDiff)
+    vectorize(int(currFrameIdx)-startingFrame-2, frameDiff)
 
     lastFrame = frame.copy()
 
@@ -130,27 +138,14 @@ while cap.isOpened() and cv2.waitKey(1500) != 27:
     lastVert = cursorPosL[0]
     for vert in cursorPosL:  # draw points and connections
         if vert[0] != -1 and lastVert[0] != -1:
-            # Draws in blue the line made by the cursor movement
             cv2.line(frame, lastVert, vert, (255, 150, 150), 1, cv.CV_AA)
         lastVert = vert
 
-    # Draws vertices for the vectors
     for vert in cursorPosL:
         if vert[0] != -1:
             cv2.line(frame, vert, vert, (0, 0, 255), 1)
 
-######################## MEN AT WORK
-    for i in range(-2, 3):
-        for j in range(-2, 3):
-            pixel = frame[cursorCoord[1]+i, cursorCoord[0]+j]
-            if 10 < pixel[0] < 230 or 10 < pixel[1] < 230 or 10 < pixel[2] < 230:
-                frameDiff[cursorCoord[1]+i, cursorCoord[0]+j] = (255,255,255)
-                print "Detected point: " + str(pixel)
-########################
-
-    print str(frame[cursorCoord[0], cursorCoord[1]]) + "   "  + str(cursorCoord)
-
-    opacity = 0.4 # blend the cursor blue line with original image
+    opacity = 0.4 # blend with original image
     cv2.addWeighted(overlay, opacity, frame, 1 - opacity, 0, frame)
 
     newSize = (int(frame.shape[1] * 2), int(frame.shape[0] * 2))
