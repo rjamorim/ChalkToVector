@@ -6,10 +6,6 @@ from datastructs import *
 pixelThreshold = 100
 imgScaling = 16
 
-
-
-
-
 # add neighbors of the pixel at location 'pt' to the BFS queue
 def addNB(img, pt, queue, level):
     if pt[0] + 1 < len(img):
@@ -95,9 +91,9 @@ group = 0
 cmClusters = [[[startX[0], startX[1], 0, group]]]
 # pixelClusters = cmClusters[:]
 
-strokeGraph = StrokeGraph(StrokeNode(cmClusters[0], 0))
+strokeGraph = StrokeGraph(StrokeNode(cmClusters[0], cmClusters[0], 0))
 
-print BFSexploredPixelLevels
+# print BFSexploredPixelLevels
 for pts in BFSexploredPixelLevels:
     clusters = [[pt + [group]] for pt in pts]
     for cluster in clusters:
@@ -118,7 +114,6 @@ for pts in BFSexploredPixelLevels:
 
     # done generating this level's clusters
     # now join them with those from the previous level
-
 
     levelCentersOfMass = []
 
@@ -144,14 +139,15 @@ for pts in BFSexploredPixelLevels:
         centerOfMass[0] = centerOfMass[0] * imgScaling + imgScaling * 1.5
         centerOfMass[1] = centerOfMass[1] * imgScaling + imgScaling * 0.5
 
-        cv2.circle(result, (int(centerOfMass[0]), int(centerOfMass[1])), 1, (9 * pts[0][2], 9 * pts[0][2], 9 * pts[0][2]), 4, cv.CV_AA)
+        # cv2.circle(result, (int(centerOfMass[0]), int(centerOfMass[1])), 1, (9 * pts[0][2], 9 * pts[0][2], 9 * pts[0][2]), 4, cv.CV_AA)
 
-    strokeGraph.addClusters(clusters)
+    strokeGraph.addClusters(clusters, levelCentersOfMass)
 
     cmClusters.append(levelCentersOfMass)
 
 strokeGraph.root.printMe()
-print len(centersOfMass)
+strokeGraph.root.drawMe(result)
+# print len(centersOfMass)
 
 closestMatches = [[10000,0] for pathPtIdx in cursorPath]
 for ptIdx in range(len(centersOfMass)):
@@ -192,7 +188,6 @@ pathSplit = []
 # print pathSegments
 
 shiftX = 0
-
 
 lastPt = pathSegments[0]
 for pt in pathSegments[1:]:
