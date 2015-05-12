@@ -10,8 +10,8 @@ import cv
 # Get the videoCapture object and set it a bit ahead, so we don't have to wait a lot to start debugging
 cap = cv2.VideoCapture("../resources/test.mp4")
 cap2 = cv2.VideoCapture("../resources/test.mp4")
-# startingFrame = 265
-startingFrame = 360
+startingFrame = 260
+# startingFrame = 360
 cap.set(cv.CV_CAP_PROP_POS_FRAMES, startingFrame)
 
 # Read the first frame to obtain the video dimension
@@ -26,19 +26,19 @@ cursorPosL = []
 # List of attributes per frame posL[2] >> -2 >> posL[2-2] == posL[0]
 # posL = [ [STROKE_BEGIN/END/HOLD/UNKNOWN,dsfh], -1 , -2 ]
 posL = []
-colorL = []
+# colorL = []
 frameSpacing = 40 # needs more descriptive name
 
 # currFrame = cap.get(cv.CV_CAP_PROP_POS_FRAMES) + 1
 
-cv2.namedWindow('frameDiff')
-cv2.moveWindow('frameDiff', 50, 50)
+#cv2.namedWindow('frameDiff')
+#cv2.moveWindow('frameDiff', 50, 50)
 
-cv2.namedWindow('frame')
-cv2.moveWindow('frame', 800, 50)
+cv2.namedWindow('original frame')
+cv2.moveWindow('original frame', 800, 50)
 
-cv2.namedWindow('result')
-cv2.moveWindow('result', 50, 600)
+#cv2.namedWindow('result')
+#cv2.moveWindow('result', 50, 600)
 
 points = []
 
@@ -79,10 +79,10 @@ def vectorize(cIdx, frameDiff):
                 cv2.line(res, lastVert, vert, (255, 150, 150), 1, cv.CV_AA)
             lastVert = vert
 
-        cv2.imshow('result', res)
+        #cv2.imshow('result', res)
 
 # Main loop
-while cap.isOpened() and cv2.waitKey(250) != 27:
+while cap.isOpened() and cv2.waitKey(80) != 27:
     ret, frame = cap.read()
 
     # Identifies positions within the frame with color values between 230 and 255 to locate the cursor
@@ -122,38 +122,49 @@ while cap.isOpened() and cv2.waitKey(250) != 27:
     else:
         cursorPosL.append((-1,-1))
 
-    currFrameIdx = cap.get(cv.CV_CAP_PROP_POS_FRAMES)
-    cap2.set(cv.CV_CAP_PROP_POS_FRAMES, currFrameIdx + frameSpacing)
-    ret, frameAhead = cap2.read()
-    cap2.set(cv.CV_CAP_PROP_POS_FRAMES, currFrameIdx - frameSpacing)
-    ret, frameBefore = cap2.read()
-    frameDiff = cv2.absdiff(frameAhead, frameBefore)
+    # currFrameIdx = cap.get(cv.CV_CAP_PROP_POS_FRAMES)
+    # cap2.set(cv.CV_CAP_PROP_POS_FRAMES, currFrameIdx + frameSpacing)
+    # ret, frameAhead = cap2.read()
+    # cap2.set(cv.CV_CAP_PROP_POS_FRAMES, currFrameIdx - frameSpacing)
+    # ret, frameBefore = cap2.read()
+    # frameDiff = cv2.absdiff(frameAhead, frameBefore)
+    #
+    # vectorize(int(currFrameIdx)-startingFrame-2, frameDiff)
+    #
+    # lastFrame = frame.copy()
+    #
+    # # DEBUG DRAW of inferred cursor path (blue line)
+    # overlay = frame.copy()  # create a copy of frame
+    # lastVert = cursorPosL[0]
+    # for vert in cursorPosL:  # draw points and connections
+    #     if vert[0] != -1 and lastVert[0] != -1:
+    #         cv2.line(frame, lastVert, vert, (255, 150, 150), 1, cv.CV_AA)
+    #     lastVert = vert
+    #
+    # # Prints small red dots in each vertice of the cursor path
+    # for vert in cursorPosL:
+    #     if vert[0] != -1:
+    #         cv2.line(frame, vert, vert, (0, 0, 255), 1)
+    #
+    # # for i in range(-2, 3):
+    # #     for j in range(-2, 3):
+    # #         pixel = frame[cursorCoord[1]+i, cursorCoord[0]+j]
+    # #         if 10 < pixel[0] < 230 or 10 < pixel[1] < 230 or 10 < pixel[2] < 230:
+    # #             # frameDiff[cursorCoord[1]+i, cursorCoord[0]+j] = (255,255,255)
+    # #             print "Detected point: " + str(pixel)
+    #
+    #
+    # #print str(frame[cursorCoord[1], cursorCoord[1]]) + "   "  + str(cursorCoord)
+    #
+    # opacity = 0.4 # blend with original image
+    # cv2.addWeighted(overlay, opacity, frame, 1 - opacity, 0, frame)
 
-    vectorize(int(currFrameIdx)-startingFrame-2, frameDiff)
+    # newSize = (int(frame.shape[1] * 2), int(frame.shape[0] * 2))
+    # frameDiff = cv2.resize(frameDiff, newSize, interpolation=cv2.INTER_NEAREST)
+    # frame = cv2.resize(frame, newSize, interpolation=cv2.INTER_NEAREST)
 
-    lastFrame = frame.copy()
-
-    # DEBUG DRAW of inferred cursor path
-    overlay = frame.copy()  # create a copy of frame
-    lastVert = cursorPosL[0]
-    for vert in cursorPosL:  # draw points and connections
-        if vert[0] != -1 and lastVert[0] != -1:
-            cv2.line(frame, lastVert, vert, (255, 150, 150), 1, cv.CV_AA)
-        lastVert = vert
-
-    for vert in cursorPosL:
-        if vert[0] != -1:
-            cv2.line(frame, vert, vert, (0, 0, 255), 1)
-
-    opacity = 0.4 # blend with original image
-    cv2.addWeighted(overlay, opacity, frame, 1 - opacity, 0, frame)
-
-    newSize = (int(frame.shape[1] * 2), int(frame.shape[0] * 2))
-    frameDiff = cv2.resize(frameDiff, newSize, interpolation=cv2.INTER_NEAREST)
-    frame = cv2.resize(frame, newSize, interpolation=cv2.INTER_NEAREST)
-
-    cv2.imshow('frameDiff', frameDiff)
-    cv2.imshow('frame', frame)
+    # cv2.imshow('frameDiff', frameDiff)
+    cv2.imshow('original frame', frame)
 
     # cv2.imshow('frameThresh', frameThresh) # Debug purposes only
 

@@ -12,7 +12,7 @@ class StrokeNode:
         self.centersOfMass = initialCenterOfMass
         self.coms = []
         self.children = []
-        self.parent = None
+        self.parent = self
         self.ID = ID
         self.type = type
         self.expansionIntention = []
