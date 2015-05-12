@@ -153,7 +153,7 @@ class StrokeSpliter:
     expandingStart = True
     lastCntArea = 0
     uselessExpansions = 0
-    maxUselessExpansions = 25
+    maxUselessExpansions = 45
 
     @classmethod
     def isolateStroke2(cls, cursorCoord):
@@ -162,9 +162,9 @@ class StrokeSpliter:
 
         while (not expandingDone):
             cls.tmpFrameDiff = cls.getFrameDiff(cls.currStartSpacing, cls.currEndSpacing)
-
-            cls.frameThresh = cv2.inRange(cls.tmpFrameDiff, (30, 30, 30), (255, 255, 255))
-            cls.frameThresh = cv2.dilate(cls.frameThresh, cls.dilationKernel, 1)
+            cls.frameThresh = cv2.cvtColor(cls.tmpFrameDiff, cv.CV_RGB2GRAY)
+            cls.frameThresh = cv2.inRange(cls.frameThresh, 40, 255)
+            # cls.frameThresh = cv2.dilate(cls.frameThresh, cls.dilationKernel, 1)
 
             strokeArea = cls.pixelBFS(cls.frameThresh, cursorCoord)
 
@@ -187,22 +187,24 @@ class StrokeSpliter:
 
             # print cls.uselessExpansions
 
-        print len(strokeArea)
-        for p in strokeArea:
-            cv2.circle(cls.tmpFrameDiff, (p[0], p[1]), 1, (80,80,255))
-
-        cv2.circle(cls.tmpFrameDiff, (cursorCoord[0], cursorCoord[1]), 3, (180,180,255))
-
         print cls.currStartSpacing, cls.currEndSpacing
-        cv2.imshow('tmpFrameDiff', cls.tmpFrameDiff)
-        cv2.waitKey(80)
 
         cls.currStartSpacing = 3
         cls.currEndSpacing = 3
         cls.expandingStart = True
         cls.lastCntArea = 0
         cls.uselessExpansions = 0
-        cls.maxUselessExpansions = 25
+        cls.maxUselessExpansions = 45
+
+        print len(strokeArea)
+        for p in strokeArea:
+            cv2.circle(cls.parsedRegions, (p[0], p[1]), 1, (80,80,255))
+            # cv2.circle(cls.tmpFrameDiff, (p[0], p[1]), 1, (80,80,255))
+
+        cv2.circle(cls.tmpFrameDiff, (cursorCoord[0], cursorCoord[1]), 3, (180,180,255))
+
+        cv2.imshow('tmpFrameDiff', cls.frameThresh)
+        cv2.waitKey(70)
 
 
 
