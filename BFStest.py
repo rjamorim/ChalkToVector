@@ -1,6 +1,4 @@
 import numpy as np
-import cv2
-import cv
 from datastructs import *
 
 pixelThreshold = 100

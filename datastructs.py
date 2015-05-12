@@ -1,6 +1,5 @@
 import cv2
 import cv
-import numpy as np
 
 # squared eclidian distance between two points
 def pixelSqDist(pt1, pt2):
