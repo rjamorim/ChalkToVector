@@ -10,7 +10,7 @@ import cv
 # Method to store in a file a list of all cursor positions in the video file
 def updateCursorPosList(videofile):
     cap = cv2.VideoCapture(videofile)
-    contoursFile = open("./resources/contours.txt", 'w')
+    cursorFile = open("./resources/cursor.txt", 'w')
 
     while cap.isOpened():
 
@@ -37,23 +37,23 @@ def updateCursorPosList(videofile):
                 for vert in maxCnt:
                     if vert[0][0] <= cursorCoord[0] and vert[0][1] <= cursorCoord[1]:
                         cursorCoord = (vert[0][0]-1, vert[0][1]-3)
-                contoursFile.write(str(cursorCoord[0]) + " " + str(cursorCoord[1]) + "\n")
+                cursorFile.write(str(cursorCoord[0]) + " " + str(cursorCoord[1]) + "\n")
 
         if not maxArea or not contours:
-            contoursFile.write("-1 -1\n")
+            cursorFile.write("-1 -1\n")
 
-    contoursFile.close()
+    cursorFile.close()
 
 
 # Returns an array of tuples with the list of all cursor positions in the video
 def getCursorPosList():
     cursorPosList = []
 
-    with open("./resources/contours.txt", "r") as f:
-        line = f.readline()
+    with open("./resources/cursor.txt", "r") as cursorFile:
+        line = cursorFile.readline()
         while line:
             tmp = line.split(' ')
             cursorPosList.append( (int(tmp[0]), int(tmp[1])) )
-            line = f.readline()
+            line = cursorFile.readline()
 
     return cursorPosList
