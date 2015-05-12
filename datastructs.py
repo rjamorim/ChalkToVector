@@ -12,9 +12,11 @@ class StrokeNode:
         self.centersOfMass = initialCenterOfMass
         self.coms = []
         self.children = []
+        self.parent = None
         self.ID = ID
         self.type = type
         self.expansionIntention = []
+        self.size = None
 
     def addCluster(self, cluster, centerOfMass):
         self.clusters.append(cluster)
@@ -29,20 +31,19 @@ class StrokeNode:
 
     def drawMe(self, img):
         for cm in self.centersOfMass:
-            cv2.waitKey(500)
-            cv2.imshow("x image", img)
+            # cv2.waitKey(500)
+            # cv2.imshow("x image", img)
             cv2.circle(img, ( int(cm[0]*16+24), int(cm[1]*16+8) ), 1, (60*self.ID,60*self.ID,110), 4, cv.CV_AA)
-
 
         for child in self.children:
             child.drawMe(img)
-
 
 class StrokeGraph:
     def __init__(self, firstNode):
         self.root = firstNode
         self.frontier = [firstNode]
         self.nNodes = 1
+        self.nodes = [firstNode]
 
     def addClusters(self, clusters, centersOfMass):
 
@@ -71,8 +72,10 @@ class StrokeGraph:
             else:
                 for cluster in frontierNode.expansionIntention:
                     newNode = StrokeNode(cluster, [ centersOfMass[clusters.index(cluster)] ], self.nNodes)
+                    newNode.parent = frontierNode
                     self.nNodes += 1
                     frontierNode.children.append(newNode)
+                    self.nodes.append(newNode)
                     self.frontier.append(newNode)
 
                 self.frontier.remove(frontierNode)
